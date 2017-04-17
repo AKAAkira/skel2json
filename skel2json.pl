@@ -44,6 +44,7 @@ sub ConvertSkel
 		my %json;
 		my %skeleton;
 		my @bones;
+		my @ik;
 		my @slots;
 		my %skins;
 		my %animations;
@@ -100,9 +101,21 @@ sub ConvertSkel
 
 			# IK section.
 			$num = readVarint($skeldata, $pointer);
-			if ($num > 0)
+			for (my $ikid = 0; $ikid < $num; $ikid++)
 			{
-				die("TODO: IK section.");
+				my %constraint;
+				my @ikbones;
+				$constraint{'name'} = readString($skeldata, $pointer);
+				my $count = readVarint($skeldata, $pointer);
+				for (my $i = 0; $i < $count; $i++)
+				{
+					push @ikbones, $bonename[readVarint($skeldata, $pointer)];
+				}
+				$constraint{'bones'} = \@ikbones;
+				$constraint{'target'} = $bonename[readVarint($skeldata, $pointer)];
+				$constraint{'mix'} = readFloat($skeldata, $pointer);
+				$constraint{'bendPositive'} = readByte($skeldata, $pointer) > 127 ? JSON::false : JSON::true;
+				push @ik, \%constraint;
 			}
 
 			# Transform section.
@@ -163,13 +176,14 @@ sub ConvertSkel
 			# Put together the JSON file from the decoded sections.
 			$json{'skeleton'} = \%skeleton;
 			$json{'bones'} = \@bones;
+			$json{'ik'} = \@ik if ($ik[0]);
 			$json{'slots'} = \@slots;
 			$json{'skins'} = \%skins;
 			$json{'animations'} = \%animations;
 
 			# Change the extension to .json and save the data.
 			open (JSONFILE, '>' . $fileout);
-			print JSONFILE encode_json \%json;
+			print JSONFILE to_json(\%json, {utf8 => 1, canonical => 1});
 			close (JSONFILE);
 			print "Done!\n";
 		}
@@ -695,7 +709,7 @@ sub readAnimation
 			}
 			$deform{$skinname[$skinindex]} = \%skindata;
 		}
-		#$animation{'deform'} = \%deform;
+		$animation{'deform'} = \%deform;
 	}
 
 	# Draw order timeline.
