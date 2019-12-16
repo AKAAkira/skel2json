@@ -728,7 +728,7 @@ sub readAnimation
 				my $slotindex = readVarint($rawdata, $pointer);
 				my $draworder = readVarint($rawdata, $pointer);
 				$offdata{'slot'} = $slotname[$slotindex];
-				$offdata{'offset'} = $draworder;
+				$offdata{'offset'} = (($draworder + 2147483648) % 4294967296) - 2147483648;
 				push @offsets, \%offdata;
 			}
 			$drawdata{'offsets'} = \@offsets;
